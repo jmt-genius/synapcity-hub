@@ -1,27 +1,23 @@
 # SynapCity Backend
 
-Express backend server for link data extraction using Claude API.
+Express.js backend server for link data extraction, AI-powered summarization, and semantic search.
 
-## Setup
+## 🚀 Quick Start
 
-1. Install dependencies:
+### 1. Install Dependencies
+
 ```bash
 npm install
 ```
 
-2. Create a `.env` file in the backend directory:
-```bash
-# Create .env file manually or copy from example
-```
+### 2. Environment Variables Setup
 
-3. Add your LiteLLM proxy configuration to `.env`:
+Create a `.env` file in the `backend` directory:
+
 ```env
-# LiteLLM Proxy Configuration
+# LiteLLM Proxy Configuration (for Claude API)
 ANTHROPIC_BASE_URL=https://litellm-339960399182.us-central1.run.app
 ANTHROPIC_AUTH_TOKEN=your_api_key_here
-
-# RapidAPI Key for YouTube Transcripts (optional, defaults to provided key)
-RAPIDAPI_KEY=your_rapidapi_key_here
 
 # Gemini API Key (for YouTube video summarization)
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -30,12 +26,16 @@ GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3001
 ```
 
-**Note:** 
-- Replace `your_api_key_here` with your actual API key provided by Appointy.
-- The `RAPIDAPI_KEY` is optional - the server includes a default key, but you can provide your own if needed.
-- The `GEMINI_API_KEY` is required for YouTube video summarization. You can use the provided key or get your own from [Google AI Studio](https://makersuite.google.com/app/apikey).
+**Required Variables:**
+- `ANTHROPIC_AUTH_TOKEN` - Your API key for the LiteLLM proxy (required)
+- `GEMINI_API_KEY` - Google Gemini API key (required for YouTube summarization)
 
-4. Start the server:
+**Optional Variables:**
+- `ANTHROPIC_BASE_URL` - Defaults to the provided LiteLLM proxy URL
+- `PORT` - Server port (defaults to 3001)
+
+### 3. Run the Server
+
 ```bash
 # Development mode (with auto-reload)
 npm run dev
@@ -46,19 +46,13 @@ npm start
 
 The server will run on `http://localhost:3001` by default.
 
-## API Endpoints
+## 📡 API Endpoints
 
 ### POST `/api/extract-link`
 
-Extracts metadata and summarizes content from a URL using Claude API. For YouTube URLs, it also extracts the video transcript and generates a summary.
+Extracts metadata and generates AI summaries from URLs.
 
-**YouTube Support:**
-- Automatically detects YouTube URLs
-- Fetches video transcript using RapidAPI
-- Generates summary using Google Gemini API
-- Returns transcript, summary, and thumbnail
-
-**Request Body:**
+**Request:**
 ```json
 {
   "url": "https://example.com/article"
@@ -74,10 +68,47 @@ Extracts metadata and summarizes content from a URL using Claude API. For YouTub
     "title": "Article Title",
     "description": "Article description",
     "image": "https://example.com/image.jpg",
-    "summary": "Claude-generated summary of the webpage content..."
+    "summary": "AI-generated summary...",
+    "tags": ["tag1", "tag2"]
   }
 }
 ```
+
+**Features:**
+- Automatically detects YouTube URLs
+- For YouTube: Generates title, tags, and summary using Gemini API
+- For regular links: Extracts metadata and generates summary using Claude API
+
+### POST `/api/ai-search`
+
+Performs semantic search across items using Gemini AI.
+
+**Request:**
+```json
+{
+  "query": "What are the best practices for React?",
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Item Title",
+      "notes": "Item notes content..."
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "matchingIds": ["uuid1", "uuid2"]
+}
+```
+
+**Features:**
+- Processes items in batches of 3
+- Uses Gemini AI for semantic matching
+- Returns array of matching item IDs
 
 ### GET `/health`
 
@@ -91,17 +122,46 @@ Health check endpoint.
 }
 ```
 
-## Environment Variables
+## 🔧 Configuration
 
-- `ANTHROPIC_BASE_URL` - LiteLLM proxy URL (defaults to `https://litellm-339960399182.us-central1.run.app`)
-- `ANTHROPIC_AUTH_TOKEN` - Your API key for the LiteLLM proxy (required)
-- `RAPIDAPI_KEY` - RapidAPI key for YouTube transcript extraction (optional, defaults to provided key)
-- `GEMINI_API_KEY` - Google Gemini API key for YouTube video summarization (required, defaults to provided key)
-- `PORT` - Server port (optional, defaults to 3001)
+### Claude API (via LiteLLM Proxy)
 
-## LiteLLM Proxy Configuration
+The backend uses Appointy's LiteLLM proxy to access Claude API. The proxy URL is pre-configured, you only need to provide your API key.
 
-This backend uses Appointy's LiteLLM proxy to access Claude API. The proxy URL is pre-configured, but you need to provide your API key in the `.env` file.
+### Gemini API
 
-The backend automatically uses the LiteLLM proxy endpoint, so you don't need to configure anything else beyond the API key.
+Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
 
+## 🐛 Troubleshooting
+
+### Server won't start
+- Check if port 3001 is already in use
+- Verify all environment variables are set correctly
+- Ensure all dependencies are installed: `npm install`
+
+### API errors
+- Verify `ANTHROPIC_AUTH_TOKEN` is correct
+- Check `GEMINI_API_KEY` is valid
+- Review server logs for detailed error messages
+
+### YouTube summarization not working
+- Verify `GEMINI_API_KEY` is set correctly
+- Check that the YouTube URL is valid and accessible
+- Review backend logs for Gemini API errors
+
+## 📦 Dependencies
+
+- `express` - Web framework
+- `cors` - Cross-origin resource sharing
+- `dotenv` - Environment variable management
+- `@anthropic-ai/sdk` - Claude API client
+- `@google/generative-ai` - Gemini API client
+- `node-fetch` - HTTP client
+- `cheerio` - HTML parsing
+
+## 🔒 Security Notes
+
+- Never commit `.env` files to version control
+- Keep API keys secure
+- Consider adding rate limiting for production
+- Validate URLs before processing

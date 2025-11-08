@@ -1,73 +1,131 @@
-# Welcome to your Lovable project
+# SynapCity Frontend
 
-## Project info
+React + Vite frontend application for the SynapCity knowledge management platform.
 
-**URL**: https://lovable.dev/projects/1ebf9f1c-fdf3-445c-b09c-4d96fb8bd4d1
+## 🚀 Quick Start
 
-## How can I edit this code?
+### 1. Install Dependencies
 
-There are several ways of editing your application.
+```bash
+npm install
+```
 
-**Use Lovable**
+### 2. Environment Variables Setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1ebf9f1c-fdf3-445c-b09c-4d96fb8bd4d1) and start prompting.
+Create a `.env` file in the `frontend` directory:
 
-Changes made via Lovable will be committed automatically to this repo.
+```env
+# Backend API URL
+VITE_BACKEND_URL=http://localhost:3001
 
-**Use your preferred IDE**
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**Required Variables:**
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Optional Variables:**
+- `VITE_BACKEND_URL` - Backend API URL (defaults to `http://localhost:3001`)
 
-Follow these steps:
+### 3. Run the Development Server
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173` (or the port shown in terminal).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 4. Build for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The production build will be in the `dist` directory.
 
-## What technologies are used for this project?
+## 🏗️ Project Structure
 
-This project is built with:
+```
+frontend/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/          # Page components
+│   ├── lib/            # Utility functions and API clients
+│   ├── hooks/          # Custom React hooks
+│   └── integrations/   # Supabase client configuration
+└── supabase/
+    └── migrations/     # Database migration files
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🎯 Features
 
-## How can I deploy this project?
+- **Dashboard**: View and search all saved items
+- **Links Page**: Save web links with automatic metadata extraction
+- **YouTube Page**: Save YouTube videos with AI-generated summaries
+- **Insert Data**: Manually add items with custom fields
+- **Item Details**: View complete item information
+- **AI Search**: Semantic search powered by Gemini AI
+- **Domain Filtering**: Filter items by domain
 
-Simply open [Lovable](https://lovable.dev/projects/1ebf9f1c-fdf3-445c-b09c-4d96fb8bd4d1) and click on Share -> Publish.
+## 🔧 Configuration
 
-## Can I connect a custom domain to my Lovable project?
+### Supabase Setup
 
-Yes, you can!
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your project URL and anon key from Project Settings > API
+3. Run the database migrations from `supabase/migrations/`
+4. Configure RLS policies (see `SUPABASE_SETUP_GUIDE.md`)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Backend Integration
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Ensure the backend server is running on the port specified in `VITE_BACKEND_URL`.
+
+## 📦 Key Dependencies
+
+- `react` - UI library
+- `react-router-dom` - Routing
+- `@supabase/supabase-js` - Supabase client
+- `@tanstack/react-query` - Data fetching
+- `shadcn-ui` - UI components
+- `tailwindcss` - Styling
+- `zod` - Schema validation
+
+## 🐛 Troubleshooting
+
+### Frontend won't start
+- Verify Node.js version is 18+
+- Run `npm install` to ensure all dependencies are installed
+- Check for port conflicts
+
+### Can't connect to backend
+- Verify backend server is running
+- Check `VITE_BACKEND_URL` in `.env`
+- Review browser console for CORS errors
+
+### Supabase connection issues
+- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are correct
+- Check Supabase project is active
+- Review browser console for authentication errors
+
+### Build errors
+- Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
+- Check for TypeScript errors: `npm run type-check` (if available)
+
+## 🧪 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint (if configured)
+
+## 🔒 Security Notes
+
+- Never commit `.env` files
+- Keep Supabase keys secure
+- Use environment variables for all sensitive data
+- RLS policies are enforced at the database level
