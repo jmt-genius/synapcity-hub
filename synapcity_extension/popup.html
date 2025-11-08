@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Synapcity Saver</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div id="confirmation-view" style="display: none;">
+            <!-- Confirmation dialog content will be inserted here by popup.js -->
+        </div>
+
+        <div id="main-view">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="shortcuts">Bookmarks / Shortcuts</button>
+                <button class="tab-button" data-tab="settings">Settings</button>
+            </div>
+
+            <div id="shortcuts-tab" class="tab-content active">
+                <h2>Last Save Status</h2>
+                <div id="save-status-message" class="status-info">Loading status...</div>
+
+                <div class="shortcut-info">
+                    <p>Press <strong>Ctrl+Shift+Y</strong> (Windows/Linux) or <strong>⌘+Shift+Y</strong> (Mac) to immediately save the current tab.</p>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <p>Manage your Supabase credentials and automatic saving preference.</p>
+                <a href="settings.html" target="_blank" class="settings-link button button-primary">Open Settings Page</a>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Get Supabase Access Token</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #f0f0f0;
+        }
+        .container {
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        h1 {
+            color: #8a2be2;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #1e1e1e;
+            color: #f0f0f0;
+            font-size: 14px;
+        }
+        button {
+            background: #8a2be2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #7a1bd2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e1e1e;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+        .token {
+            word-break: break-all;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .copy-btn {
+            background: #4a4a4a;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 10px;
+        }
+        .success {
+            color: #51cf66;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Get Supabase Access Token</h1>
+        <div style="background: #ff6b6b20; border: 1px solid #ff6b6b; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+            <strong>⚠️ Important:</strong> Do NOT use the JWT signing key from Supabase settings. 
+            You need an <strong>access token</strong> which you get by signing in as a user below.
+            The JWT signing key is a secret used by Supabase internally, not an access token.
+        </div>
+        <p>Enter your Supabase user credentials (email and password) to get your access token and user ID.</p>
+        
+        <div class="form-group">
+            <label for="supabase-url">Supabase URL</label>
+            <input type="text" id="supabase-url" value="https://gtpgddsexgsqlensqzgs.supabase.co" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="anon-key">Anon Key</label>
+            <input type="text" id="anon-key" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cGdkZHNleGdzcWxlbnNxemdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1ODgzMjgsImV4cCI6MjA3ODE2NDMyOH0.VifgnuLFzsFfx7IA34I5flYlQWGS0ztkYFqUCinrDko" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Your Email</label>
+            <input type="email" id="email" placeholder="your-email@example.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Your Password</label>
+            <input type="password" id="password" placeholder="Your Supabase password" required>
+        </div>
+
+        <button onclick="getToken()">Get Access Token</button>
+
+        <div id="result" class="result" style="display: none;">
+            <h3>Your Credentials:</h3>
+            <div>
+                <strong>Access Token:</strong>
+                <button class="copy-btn" onclick="copyToClipboard('access-token-value')">Copy</button>
+                <div id="access-token-value" class="token"></div>
+            </div>
+            <div style="margin-top: 15px;">
+                <strong>User ID:</strong>
+                <button class="copy-btn" onclick="copyToClipboard('user-id-value')">Copy</button>
+                <div id="user-id-value" class="token"></div>
+            </div>
+            <p class="success" style="margin-top: 15px;">
+                ✅ Copy these values and paste them into the extension settings!
+            </p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function getToken() {
+            const url = document.getElementById('supabase-url').value;
+            const anonKey = document.getElementById('anon-key').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Please enter your email and password');
+                return;
+            }
+
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            errorDiv.style.display = 'none';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': anonKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError(data.error_description || data.message || 'Failed to get token');
+                    return;
+                }
+
+                if (data.access_token && data.user) {
+                    document.getElementById('access-token-value').textContent = data.access_token;
+                    document.getElementById('user-id-value').textContent = data.user.id;
+                    resultDiv.style.display = 'block';
+                } else {
+                    showError('Invalid response from server');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+</body>
+</html>
+

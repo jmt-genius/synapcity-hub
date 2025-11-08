@@ -1,0 +1,176 @@
+/* styles.css - Dark Theme for Synapcity Extension */
+
+:root {
+    --color-bg-primary: #1e1e1e;
+    --color-bg-secondary: #2d2d2d;
+    --color-text-primary: #f0f0f0;
+    --color-text-secondary: #b0b0b0;
+    --color-accent: #8a2be2; /* Violet/BlueViolet */
+    --color-accent-hover: #9932cc; /* DarkOrchid */
+    --color-success: #4CAF50;
+    --color-error: #f44336;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --border-radius: 4px;
+    --spacing-unit: 8px;
+}
+
+body {
+    width: 300px;
+    font-family: var(--font-family);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    margin: 0;
+    padding: 0;
+}
+
+/* --- Layout and Tabs --- */
+.container {
+    padding: var(--spacing-unit);
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-bg-secondary);
+    margin-bottom: var(--spacing-unit);
+}
+
+.tab-button {
+    flex-grow: 1;
+    padding: var(--spacing-unit);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-weight: bold;
+}
+
+.tab-button:hover {
+    background-color: var(--color-bg-secondary);
+}
+
+.tab-button.active {
+    color: var(--color-accent);
+    border-bottom: 2px solid var(--color-accent);
+    background-color: var(--color-bg-secondary);
+}
+
+.tab-content {
+    display: none;
+    padding: var(--spacing-unit) 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* --- Typography and Elements --- */
+h2 {
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: var(--spacing-unit);
+    color: var(--color-accent);
+}
+
+p {
+    margin-bottom: var(--spacing-unit);
+    line-height: 1.4;
+}
+
+/* --- Buttons --- */
+.button {
+    padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    margin-right: var(--spacing-unit);
+}
+
+.button-primary {
+    background-color: var(--color-accent);
+    color: var(--color-text-primary);
+}
+
+.button-primary:hover {
+    background-color: var(--color-accent-hover);
+}
+
+.button-secondary {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-text-secondary);
+}
+
+.button-secondary:hover {
+    background-color: #444;
+}
+
+/* --- Confirmation Dialog Specific --- */
+.confirmation-dialog {
+    text-align: center;
+    padding: calc(var(--spacing-unit) * 2);
+    border: 1px solid var(--color-bg-secondary);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-unit);
+}
+
+.confirmation-dialog p {
+    font-size: 1.1em;
+    margin-bottom: calc(var(--spacing-unit) * 2);
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-unit);
+}
+
+/* --- Status Messages --- */
+.status-message {
+    padding: var(--spacing-unit);
+    border-radius: var(--border-radius);
+    margin-top: var(--spacing-unit);
+    font-weight: bold;
+}
+
+.status-success {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--color-success);
+}
+
+.status-error {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: var(--color-error);
+}
+
+.status-info {
+    background-color: rgba(138, 43, 226, 0.2);
+    color: var(--color-accent);
+}
+
+/* --- Shortcuts Tab Specific --- */
+.shortcut-info {
+    background-color: var(--color-bg-secondary);
+    padding: var(--spacing-unit);
+    border-radius: var(--border-radius);
+    margin-top: var(--spacing-unit);
+}
+
+.shortcut-info strong {
+    color: var(--color-accent);
+}
+
+.settings-link {
+    display: block;
+    text-align: center;
+    margin-top: calc(var(--spacing-unit) * 2);
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.settings-link:hover {
+    text-decoration: underline;
+}
