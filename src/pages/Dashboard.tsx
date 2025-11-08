@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PillNav } from "@/components/PillNav";
 import { ItemCard } from "@/components/ItemCard";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Filter } from "lucide-react";
+import { extractUniqueDomains, extractDomain } from "@/lib/url-utils";
 
 interface Item {
   id: string;
@@ -28,6 +29,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [domainFilter, setDomainFilter] = useState("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -36,7 +38,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     filterItems();
-  }, [searchQuery, sourceFilter, items]);
+  }, [searchQuery, sourceFilter, domainFilter, items]);
+
+  // Extract unique domains from items with URLs
+  const uniqueDomains = useMemo(() => {
+    return extractUniqueDomains(items);
+  }, [items]);
 
   const fetchItems = async () => {
     try {
@@ -71,6 +78,15 @@ const Dashboard = () => {
 
     if (sourceFilter !== "all") {
       filtered = filtered.filter((item) => item.source === sourceFilter);
+    }
+
+    if (domainFilter !== "all") {
+      filtered = filtered.filter((item) => {
+        if (!item.url) return false;
+        // Check metadata first, then extract from URL if needed
+        const domain = item.metadata?.domain || extractDomain(item.url);
+        return domain === domainFilter;
+      });
     }
 
     setFilteredItems(filtered);
@@ -137,6 +153,22 @@ const Dashboard = () => {
                 <SelectItem value="manual">Manual</SelectItem>
               </SelectContent>
             </Select>
+            {uniqueDomains.length > 0 && (
+              <Select value={domainFilter} onValueChange={setDomainFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by domain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Domains</SelectItem>
+                  {uniqueDomains.map((domain) => (
+                    <SelectItem key={domain} value={domain}>
+                      {domain}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 

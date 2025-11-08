@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { fetchLinkPreview } from "@/lib/apyhub";
+import { extractDomain } from "@/lib/url-utils";
 
 const insertSchema = z.object({
   source: z.enum(["manual", "youtube", "linkedin", "link"], { required_error: "Please select a source" }),
@@ -29,12 +32,73 @@ const InsertData = () => {
   const [metadata, setMetadata] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewDescription, setPreviewDescription] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]);
+    }
+  };
+
+  const handleFetchPreview = async () => {
+    if (!url || source !== "link") {
+      toast({
+        title: "Invalid request",
+        description: "Please select 'Link' as source and enter a valid URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      new URL(url); // Validate URL format
+    } catch {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFetching(true);
+    setPreviewImage(null);
+    setPreviewDescription(null);
+
+    try {
+      const previewData = await fetchLinkPreview(url);
+      
+      // Set title from preview if title is empty
+      if (!title && previewData.title) {
+        setTitle(previewData.title);
+      }
+
+      // Set description if available
+      if (previewData.description) {
+        setPreviewDescription(previewData.description);
+      }
+
+      // Set preview image (use first image if available)
+      if (previewData.images && previewData.images.length > 0) {
+        setPreviewImage(previewData.images[0]);
+      }
+      
+      toast({
+        title: "Link preview fetched!",
+        description: "Preview image and metadata have been loaded.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Preview unavailable",
+        description: error.message || "Could not fetch link preview.",
+        variant: "destructive",
+      });
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -67,6 +131,7 @@ const InsertData = () => {
 
       let imagePath = null;
 
+      // Priority: uploaded image > preview image from link
       if (image) {
         const fileExt = image.name.split(".").pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -82,10 +147,23 @@ const InsertData = () => {
           .getPublicUrl(fileName);
         
         imagePath = publicUrl;
+      } else if (source === "link" && previewImage) {
+        // Use preview image from link if no manual image uploaded
+        imagePath = previewImage;
       }
 
       const tagsArray = tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null;
-      const metadataJson = metadata ? JSON.parse(metadata) : null;
+      
+      // Parse existing metadata or create new object
+      let metadataJson = metadata ? JSON.parse(metadata) : {};
+      
+      // Extract and add domain if source is "link" and URL exists
+      if (validation.data.source === "link" && validation.data.url) {
+        const domain = extractDomain(validation.data.url);
+        if (domain) {
+          metadataJson = { ...metadataJson, domain };
+        }
+      }
 
       const { error: insertError } = await supabase.from("items").insert({
         user_id: user.id,
@@ -94,7 +172,7 @@ const InsertData = () => {
         url: validation.data.url || null,
         notes: validation.data.notes || null,
         tags: tagsArray,
-        metadata: metadataJson,
+        metadata: Object.keys(metadataJson).length > 0 ? metadataJson : null,
         image_path: imagePath,
       });
 
@@ -129,7 +207,18 @@ const InsertData = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="source">Source *</Label>
-                <Select value={source} onValueChange={setSource} required>
+                <Select 
+                  value={source} 
+                  onValueChange={(value) => {
+                    setSource(value);
+                    // Clear preview when source changes
+                    if (value !== "link") {
+                      setPreviewImage(null);
+                      setPreviewDescription(null);
+                    }
+                  }} 
+                  required
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
@@ -156,15 +245,64 @@ const InsertData = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="url">URL</Label>
-                <Input
-                  id="url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  maxLength={2000}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="url"
+                    type="url"
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      // Clear preview when URL changes
+                      if (source === "link") {
+                        setPreviewImage(null);
+                        setPreviewDescription(null);
+                      }
+                    }}
+                    placeholder="https://example.com"
+                    maxLength={2000}
+                    className="flex-1"
+                  />
+                  {source === "link" && url && (
+                    <Button
+                      type="button"
+                      onClick={handleFetchPreview}
+                      disabled={fetching}
+                    >
+                      {fetching ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Fetching...
+                        </>
+                      ) : (
+                        "Fetch Preview"
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {source === "link" && previewImage && (
+                <div className="space-y-2">
+                  <Label>Link Preview</Label>
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={previewImage}
+                      alt="Link preview"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        // Hide image if it fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                  </div>
+                  {previewDescription && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {previewDescription}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
@@ -190,7 +328,7 @@ const InsertData = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Image</Label>
+                <Label htmlFor="image">Image {source === "link" && previewImage && "(or use preview above)"}</Label>
                 <Input
                   id="image"
                   type="file"

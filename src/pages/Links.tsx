@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Link2 } from "lucide-react";
+import { Link2, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { fetchLinkPreview } from "@/lib/apyhub";
+import { extractDomain } from "@/lib/url-utils";
 
 const linkSchema = z.object({
   url: z.string().url("Invalid URL").max(2000),
@@ -24,6 +26,9 @@ const Links = () => {
   const [notes, setNotes] = useState("");
   const [bulkUrls, setBulkUrls] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewDescription, setPreviewDescription] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -38,21 +43,52 @@ const Links = () => {
       return;
     }
 
+    setFetching(true);
+    setPreviewImage(null);
+    setPreviewDescription(null);
+
     try {
-      // Extract domain for title
-      const domain = new URL(url).hostname.replace("www.", "");
-      setTitle(`Link from ${domain}`);
+      // Fetch link preview from ApyHub
+      const previewData = await fetchLinkPreview(url);
+      
+      // Set title from preview or fallback to domain
+      if (previewData.title) {
+        setTitle(previewData.title);
+      } else {
+        const domain = new URL(url).hostname.replace("www.", "");
+        setTitle(`Link from ${domain}`);
+      }
+
+      // Set description if available
+      if (previewData.description) {
+        setPreviewDescription(previewData.description);
+      }
+
+      // Set preview image (use first image if available)
+      if (previewData.images && previewData.images.length > 0) {
+        setPreviewImage(previewData.images[0]);
+      }
       
       toast({
-        title: "Ready to save",
+        title: "Link preview fetched!",
         description: "You can edit the title before saving.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      // Fallback to domain-based title if API fails
+      try {
+        const domain = new URL(url).hostname.replace("www.", "");
+        setTitle(`Link from ${domain}`);
+      } catch {
+        // URL parsing failed, keep existing title
+      }
+      
       toast({
-        title: "Error",
-        description: "Could not process URL",
+        title: "Preview unavailable",
+        description: error.message || "Could not fetch link preview, but you can still save the link.",
         variant: "destructive",
       });
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -75,6 +111,9 @@ const Links = () => {
       if (!user) throw new Error("User not authenticated");
 
       const tagsArray = tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : null;
+      
+      // Extract domain from URL
+      const domain = extractDomain(url);
 
       const { error } = await supabase.from("items").insert({
         user_id: user.id,
@@ -83,7 +122,11 @@ const Links = () => {
         url,
         notes: notes || null,
         tags: tagsArray,
-        metadata: { type: "bookmark" },
+        metadata: { 
+          type: "bookmark",
+          domain: domain || null
+        },
+        image_path: previewImage || null,
       });
 
       if (error) throw error;
@@ -123,13 +166,18 @@ const Links = () => {
 
       const urls = bulkUrls.split("\n").filter((line) => line.trim());
       const items = urls.map((url) => {
-        const domain = new URL(url.trim()).hostname.replace("www.", "");
+        const extractedDomain = extractDomain(url.trim());
+        const domain = extractedDomain || new URL(url.trim()).hostname.replace("www.", "");
         return {
           user_id: user.id,
           source: "link",
           title: `Link from ${domain}`,
           url: url.trim(),
-          metadata: { type: "bookmark", bulk_import: true },
+          metadata: { 
+            type: "bookmark", 
+            bulk_import: true,
+            domain: extractedDomain || null
+          },
         };
       });
 
@@ -176,7 +224,12 @@ const Links = () => {
                     id="url"
                     type="url"
                     value={url}
-                    onChange={(e) => setUrl(e.target.value)}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      // Clear preview when URL changes
+                      setPreviewImage(null);
+                      setPreviewDescription(null);
+                    }}
                     placeholder="https://example.com"
                     required
                     className="flex-1"
@@ -184,12 +237,42 @@ const Links = () => {
                   <Button
                     type="button"
                     onClick={handleFetchTitle}
-                    disabled={!url}
+                    disabled={!url || fetching}
                   >
-                    Fetch
+                    {fetching ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      "Fetch"
+                    )}
                   </Button>
                 </div>
               </div>
+
+              {previewImage && (
+                <div className="space-y-2">
+                  <Label>Preview</Label>
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={previewImage}
+                      alt="Link preview"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        // Hide image if it fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                  </div>
+                  {previewDescription && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {previewDescription}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
