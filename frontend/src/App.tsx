@@ -12,6 +12,7 @@ import YouTube from "./pages/YouTube";
 import LinkedIn from "./pages/LinkedIn";
 import Links from "./pages/Links";
 import Account from "./pages/Account";
+import ItemDetail from "./pages/ItemDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Account />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/item/:id"
+            element={
+              <ProtectedRoute>
+                <ItemDetail />
               </ProtectedRoute>
             }
           />

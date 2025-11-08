@@ -10,8 +10,18 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Link2, Loader2 } from "lucide-react";
 import { z } from "zod";
-import { fetchLinkPreview } from "@/lib/apyhub";
+import { extractLinkData } from "@/lib/backend-api";
 import { extractDomain } from "@/lib/url-utils";
+
+// Helper function to check if URL is YouTube
+function isYouTubeUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be');
+  } catch {
+    return false;
+  }
+}
 
 const linkSchema = z.object({
   url: z.string().url("Invalid URL").max(2000),
@@ -48,30 +58,56 @@ const Links = () => {
     setPreviewDescription(null);
 
     try {
-      // Fetch link preview from ApyHub
-      const previewData = await fetchLinkPreview(url);
+      // Fetch link data from backend (includes Claude summary)
+      const linkData = await extractLinkData(url);
       
-      // Set title from preview or fallback to domain
-      if (previewData.title) {
-        setTitle(previewData.title);
+      // Set title from extracted data or fallback to domain
+      if (linkData.title) {
+        setTitle(linkData.title);
       } else {
         const domain = new URL(url).hostname.replace("www.", "");
         setTitle(`Link from ${domain}`);
       }
 
-      // Set description if available
-      if (previewData.description) {
-        setPreviewDescription(previewData.description);
+      // Set tags if provided (for YouTube videos)
+      if (isYouTubeUrl(url)) {
+        const youtubeData = linkData as any;
+        if (youtubeData.tags && Array.isArray(youtubeData.tags) && youtubeData.tags.length > 0) {
+          setTags(youtubeData.tags.join(', '));
+        }
       }
 
-      // Set preview image (use first image if available)
-      if (previewData.images && previewData.images.length > 0) {
-        setPreviewImage(previewData.images[0]);
+      // Set description if available
+      if (linkData.description) {
+        setPreviewDescription(linkData.description);
+      }
+
+      // Set preview image if available
+      if (linkData.image) {
+        setPreviewImage(linkData.image);
+      }
+
+      // Autofill notes with Claude-generated summary
+      // For YouTube, use transcript if available, otherwise use summary
+      if (isYouTubeUrl(url)) {
+        const youtubeData = linkData as any;
+        if (youtubeData.transcript) {
+          // For YouTube, show transcript in notes (or summary if available)
+          setNotes(youtubeData.summary || youtubeData.transcript.substring(0, 5000));
+        } else if (linkData.summary) {
+          setNotes(linkData.summary);
+        }
+      } else {
+        if (linkData.summary) {
+          setNotes(linkData.summary);
+        }
       }
       
       toast({
-        title: "Link preview fetched!",
-        description: "You can edit the title before saving.",
+        title: isYouTubeUrl(url) ? "YouTube video data extracted!" : "Link data extracted!",
+        description: isYouTubeUrl(url) 
+          ? "Transcript and summary have been loaded. You can edit them before saving."
+          : "Title, image, and summary have been loaded. You can edit them before saving.",
       });
     } catch (error: any) {
       // Fallback to domain-based title if API fails
@@ -83,8 +119,8 @@ const Links = () => {
       }
       
       toast({
-        title: "Preview unavailable",
-        description: error.message || "Could not fetch link preview, but you can still save the link.",
+        title: "Extraction failed",
+        description: error.message || "Could not extract link data, but you can still save the link manually.",
         variant: "destructive",
       });
     } finally {

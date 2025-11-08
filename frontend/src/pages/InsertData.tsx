@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
-import { fetchLinkPreview } from "@/lib/apyhub";
+import { extractLinkData } from "@/lib/backend-api";
 import { extractDomain } from "@/lib/url-utils";
 
 const insertSchema = z.object({
@@ -70,31 +70,37 @@ const InsertData = () => {
     setPreviewDescription(null);
 
     try {
-      const previewData = await fetchLinkPreview(url);
+      // Fetch link data from backend (includes Claude summary)
+      const linkData = await extractLinkData(url);
       
-      // Set title from preview if title is empty
-      if (!title && previewData.title) {
-        setTitle(previewData.title);
+      // Set title from extracted data if title is empty
+      if (!title && linkData.title) {
+        setTitle(linkData.title);
       }
 
       // Set description if available
-      if (previewData.description) {
-        setPreviewDescription(previewData.description);
+      if (linkData.description) {
+        setPreviewDescription(linkData.description);
       }
 
-      // Set preview image (use first image if available)
-      if (previewData.images && previewData.images.length > 0) {
-        setPreviewImage(previewData.images[0]);
+      // Set preview image if available
+      if (linkData.image) {
+        setPreviewImage(linkData.image);
+      }
+
+      // Autofill notes with Claude-generated summary
+      if (linkData.summary) {
+        setNotes(linkData.summary);
       }
       
       toast({
-        title: "Link preview fetched!",
-        description: "Preview image and metadata have been loaded.",
+        title: "Link data extracted!",
+        description: "Title, image, and summary have been loaded. You can edit them before saving.",
       });
     } catch (error: any) {
       toast({
-        title: "Preview unavailable",
-        description: error.message || "Could not fetch link preview.",
+        title: "Extraction failed",
+        description: error.message || "Could not extract link data.",
         variant: "destructive",
       });
     } finally {

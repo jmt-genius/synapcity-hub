@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Youtube } from "lucide-react";
+import { Youtube, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { extractYouTubeData } from "@/lib/youtube-api";
 
 const youtubeSchema = z.object({
   url: z.string().url("Invalid URL").refine(
@@ -50,27 +51,60 @@ const YouTube = () => {
 
     setFetching(true);
     try {
+      // Fetch YouTube data including transcript from backend
+      const youtubeData = await extractYouTubeData(url);
+      
       const videoId = extractVideoId(url);
       if (!videoId) {
         throw new Error("Could not extract video ID from URL");
       }
 
       // Set thumbnail
-      const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-      setThumbnail(thumbnailUrl);
+      if (youtubeData.thumbnail) {
+        setThumbnail(youtubeData.thumbnail);
+      } else {
+        setThumbnail(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+      }
 
-      // For a production app, you'd use the YouTube Data API to fetch the title
-      // For now, we'll set a placeholder that the user can edit
-      setTitle("YouTube Video (Edit title)");
+      // Set title (use videoId as fallback if no title from API)
+      if (youtubeData.title && !youtubeData.title.includes('YouTube Video -')) {
+        setTitle(youtubeData.title);
+      } else {
+        setTitle(`YouTube Video - ${videoId} (Edit title)`);
+      }
+
+      // Set tags if provided
+      if (youtubeData.tags && Array.isArray(youtubeData.tags) && youtubeData.tags.length > 0) {
+        setTags(youtubeData.tags.join(', '));
+      }
+
+      // Autofill notes with transcript summary or transcript
+      if (youtubeData.summary) {
+        setNotes(youtubeData.summary);
+      } else if (youtubeData.transcript) {
+        // Use first 5000 characters of transcript if no summary
+        setNotes(youtubeData.transcript.substring(0, 5000));
+      }
 
       toast({
-        title: "Metadata fetched",
-        description: "Please verify and edit the information before saving.",
+        title: "YouTube data extracted!",
+        description: "Title, tags, and summary have been loaded. You can edit them before saving.",
       });
     } catch (error: any) {
+      // Fallback: at least set thumbnail
+      try {
+        const videoId = extractVideoId(url);
+        if (videoId) {
+          setThumbnail(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+          setTitle(`YouTube Video - ${videoId} (Edit title)`);
+        }
+      } catch {
+        // Ignore fallback errors
+      }
+
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Extraction failed",
+        description: error.message || "Could not extract YouTube data, but you can still save manually.",
         variant: "destructive",
       });
     } finally {
@@ -161,7 +195,14 @@ const YouTube = () => {
                     onClick={fetchMetadata}
                     disabled={!url || fetching}
                   >
-                    {fetching ? "Fetching..." : "Fetch"}
+                    {fetching ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      "Fetch"
+                    )}
                   </Button>
                 </div>
               </div>

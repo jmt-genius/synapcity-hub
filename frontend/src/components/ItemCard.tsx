@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Trash2, Youtube, Linkedin, Link2, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface ItemCardProps {
   item: {
@@ -33,11 +34,24 @@ const sourceColors = {
 };
 
 export const ItemCard = ({ item, onDelete }: ItemCardProps) => {
+  const navigate = useNavigate();
   const SourceIcon = sourceIcons[item.source as keyof typeof sourceIcons] || FileText;
   const sourceColor = sourceColors[item.source as keyof typeof sourceColors] || sourceColors.manual;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons or links
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) {
+      return;
+    }
+    navigate(`/item/${item.id}`);
+  };
+
   return (
-    <Card className="group overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in">
+    <Card 
+      className="group overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in cursor-pointer"
+      onClick={handleCardClick}
+    >
       {item.image_path && (
         <div className="relative h-48 overflow-hidden bg-muted">
           <img
